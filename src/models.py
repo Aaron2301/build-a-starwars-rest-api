@@ -1,19 +1,94 @@
 from flask_sqlalchemy import SQLAlchemy
+import os
+import sys
 
 db = SQLAlchemy()
 
-class User(db.Model):
+""" class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(80), unique=False, nullable=False)
     is_active = db.Column(db.Boolean(), unique=False, nullable=False)
-
     def __repr__(self):
         return '<User %r>' % self.username
-
     def serialize(self):
         return {
             "id": self.id,
             "email": self.email,
             # do not serialize the password, its a security breach
+        } """
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(30), nullable=False, unique=True)
+    email = db.Column(db.String(80), nullable=False, unique=True)
+    password = db.Column(db.String(80), unique=False, nullable=False)
+    #favorite_id = db.Column(db.Integer, db.ForeignKey('favorite.id'))
+    favorites  = db.relationship('Favorite', backref='user', uselist=True)
+    def verifyLogin(self):
+        """verify login"""
+        pass
+    def addToFavorite(self):
+        """Add to Favorite """
+        pass
+    def removeFavorite(self):
+        """remove Favorite"""
+        pass
+
+    def serialize(self):
+        return {
+            "user_name": self.user_name,
+            "id": self.id
         }
+    
+    @classmethod
+    def create(cls, bubulala):
+        try:
+            new_user = cls(**bubulala)
+            db.session.add(new_user)
+            db.session.commit()
+            return new_user
+        except Exception as error:
+            db.session.rollback()
+            print(error)
+            return None
+
+    
+class Favorite(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50))
+    url = db.Column(db.String(125), nullable=False) 
+    user_id= db.Column(db.Integer,db.ForeignKey('user.id'), nullable=False)
+    __table_args__ = (db.UniqueConstraint(
+        'user_id',
+        'url',
+        name='unique_fav_for_user'
+    ),)
+
+    def serialize(self):
+        return {
+            "user_id": self.user_id,
+            "swapi_url": self.url,
+            "url": "/detail/"+self.url.replace("https://www.swapi.tech/api/", ""),
+            "id": self.id,
+            "favName": self.name
+        }
+    
+    def delete(self):
+        db.session.delete(self)
+        try:
+            db.session.commit()
+            return True
+        except Exception as error:
+            db.session.rollback()
+            return False
+    
+
+class Character(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), nullable=False, unique=True)
+    birth_day = db.Column(db.Integer, nullable=False)
+    gender = db.Column(db.String(80), nullable=False)
+    height = db.Column(db.Integer, nullable=False)
+    skin_color = db.Column(db.String(80), nullable=False)
+
